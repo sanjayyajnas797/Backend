@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int              @id @default(autoincrement())
+  email       String           @unique
+  password    String
+  role       String   @default("user") // either "admin" or "user"
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+  created_by  Int?
+  updated_by  Int?
+
+  // Relations
+  accounts    AccountMember[]
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  role_name   String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Example: Admin / Normal User
+  members     AccountMember[]
+}
+
+model Account {
+  id              Int            @id @default(autoincrement())
+  account_name    String
+  app_secret_token String       @unique @default(uuid())
+  website         String?
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  created_by      Int
+  updated_by      Int
+
+  // Relations
+  destinations    Destination[]
+  members         AccountMember[]
+  logs            Log[]
+}
+
+model Destination {
+  id          Int       @id @default(autoincrement())
+  url         String
+  method      String
+  headers     Json
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  created_by  Int
+  updated_by  Int
+
+  // Relations
+  account     Account   @relation(fields: [account_id], references: [id])
+  account_id  Int
+  logs        Log[]
+}
+
+model AccountMember {
+  id          Int      @id @default(autoincrement())
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  account     Account  @relation(fields: [account_id], references: [id])
+  account_id  Int
+  user        User     @relation(fields: [user_id], references: [id])
+  user_id     Int
+  role        Role     @relation(fields: [role_id], references: [id])
+  role_id     Int
+}
+
+model Log {
+  id                  Int       @id @default(autoincrement())
+  event_id            String    @unique
+  received_timestamp  DateTime  @default(now())
+  processed_timestamp DateTime?
+  received_data       Json
+  status              String    // success | failed
+
+  // Relations
+  account     Account     @relation(fields: [account_id], references: [id])
+  account_id  Int
+  destination Destination @relation(fields: [destination_id], references: [id])
+  destination_id Int
+}
